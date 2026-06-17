@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- 캐시 방지: 새로고침하면 항상 최신 버전 로드 (옛 버전이 남는 문제 방지) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>CG</title>
+  <!-- file:// 프로토콜 감지: OBJ/STL은 HTTP 서버 없이 로드 불가 -->
+  <script>
+  if (window.location.protocol === 'file:') {
+    document.addEventListener('DOMContentLoaded', function() {
+      var banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:#fff;font-family:sans-serif;font-size:13px;padding:10px 20px;line-height:1.5;text-align:center;';
+      banner.innerHTML = '⚠️ <b>3D 모델이 로드되지 않습니다.</b> Chrome은 file:// 에서 로컬 파일 접근을 차단합니다. &nbsp;|&nbsp; <b>해결:</b> 같은 폴더의 <code style="background:rgba(0,0,0,0.3);padding:1px 4px">start.command</code> 파일을 더블클릭하세요. &nbsp;<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;cursor:pointer;padding:2px 8px;font-size:12px">✕</button>';
+      document.body.prepend(banner);
+    });
+  }
+  </script>
+  <script src="p5.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #050505;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #fff;
+    }
+    canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      cursor: grab;
+    }
+    canvas:active { cursor: grabbing; }
+
+    .enter-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      background: #050505;
+      color: white;
+      text-align: center;
+    }
+    .enter-title {
+      font-size: clamp(52px, 12vw, 190px);
+      font-weight: 900;
+      line-height: 0.82;
+      letter-spacing: -0.08em;
+      text-transform: uppercase;
+    }
+    .enter-sub {
+      margin-top: 28px;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      opacity: 0.78;
+    }
+    .enter-button {
+      margin-top: 22px;
+      padding: 14px 30px;
+      background: white;
+      color: black;
+      border: 2px solid white;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .enter-button:hover { background: black; color: white; }
+
+    .ui-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      mix-blend-mode: difference;
+    }
+    .site-title {
+      position: absolute;
+      top: 28px;
+      left: 28px;
+      font-size: clamp(18px, 2vw, 28px);
+      font-weight: 900;
+      letter-spacing: -0.06em;
+      text-transform: uppercase;
+      pointer-events: none;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .bottom-help {
+      position: absolute;
+      left: 28px;
+      bottom: 24px;
+      max-width: 600px;
+      font-size: 12px;
+      line-height: 1.45;
+      letter-spacing: 0.04em;
+      opacity: 0.85;
+      pointer-events: none;
+    }
+    .sound-icon {
+      position: absolute;
+      right: 28px;
+      bottom: 26px;
+      width: 22px;
+      height: 22px;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    .sound-icon::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 5px;
+      width: 9px;
+      height: 12px;
+      background: white;
+      clip-path: polygon(0 25%, 45% 25%, 100% 0, 100% 100%, 45% 75%, 0 75%);
+    }
+    .sound-icon::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 3px;
+      width: 10px;
+      height: 16px;
+      border: 2px solid white;
+      border-left: none;
+      border-radius: 0 14px 14px 0;
+    }
+    .tooltip {
+      position: fixed;
+      z-index: 15;
+      display: none;
+      pointer-events: none;
+      min-width: 230px;
+      max-width: 320px;
+      padding: 14px 16px;
+      background: rgba(0, 0, 0, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+      color: white;
+    }
+    .tooltip .week {
+      font-size: 12px;
+      font-weight: 900;
+      opacity: 0.72;
+      margin-bottom: 5px;
+    }
+    .tooltip .title {
+      font-size: 21px;
+      font-weight: 900;
+      line-height: 1.05;
+      margin-bottom: 8px;
+    }
+    .tooltip .desc {
+      font-size: 13px;
+      line-height: 1.42;
+      opacity: 0.92;
+    }
+    .tooltip .click {
+      margin-top: 12px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      opacity: 0.9;
+    }
+    @media (max-width: 720px) {
+      .bottom-help { display: none; }
+      .site-title { top: 20px; left: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="enter-screen" id="enterScreen">
+    <div class="enter-title">ROOM<br />ARCHIVE</div>
+    <div class="enter-sub">DRAG TO ROTATE VIEW / CLICK OBJECTS TO OPEN PROJECTS</div>
+    <button class="enter-button" onclick="enterSite()">CLICK TO ENTER</button>
+  </div>
+
+  <div class="ui-layer">
+    <div class="site-title">ROOM ARCHIVE</div>
+    <div class="sound-icon" onclick="toggleSound()" title="sound toggle"></div>
+  </div>
+
+  <div class="tooltip" id="tooltip">
+    <div class="week" id="tipWeek"></div>
+    <div class="title" id="tipTitle"></div>
+    <div class="desc" id="tipDesc"></div>
+    <div class="click" id="tipClick">CLICK TO OPEN PROJECT</div>
+  </div>
+
+  <script>
+    const PROJECT_OBJECTS = [
+      {
+        id: "teapot",
+        type: "teapotSet",
+        week: "WEEK P2",
+        title: "차 따르기",
+        description: "다도의 시간",
+        link: "https://editor.p5js.org/53nu/sketches/4y-9Ct47j",
+        pos: [-540, 210, -300],
+        rot: [0.04, -0.55, -0.06],
+        scale: 1.28,
+        color: [240, 218, 178],
+        hitRadius: 96
+      },
+      {
+        id: "katana",
+        type: "katanaGenerated",
+        week: "WEEK P3",
+        title: "영역전개",
+        description: "무례하긴 순애야",
+        link: "https://editor.p5js.org/53nu/full/WXdjnh1rU",
+        pos: [-100, 100, -120],
+        rot: [0, 0, -0.4],
+        scale: 1.35,
+        color: [225, 225, 235],
+        hitRadius: 82
+      },
+      {
+        id: "mustang",
+        type: "guitarModel",
+        week: "WEEK P4",
+        title: "mustang",
+        description: "Fender Mustang",
+        link: "https://editor.p5js.org/53nu/full/uTtrxTK_T",
+        pos: [600, 54, -130],
+        rot: [0, 0, 0],
+        scale: 1.1,
+        color: [230, 64, 50],
+        hitRadius: 96
+      },
+      {
+        id: "rhythm",
+        type: "rhythmGenerated",
+        week: "WEEK P5",
+        title: "리듬세상",
+        description: "짝짝짝!!!!",
+        link: "https://editor.p5js.org/53nu/full/IBZKrY3Ve",
+        pos: [240, 200, 60],
+        rot: [0.02, -0.55, 0.02],
+        scale: 0.65,
+        color: [255, 136, 30],
+        hitRadius: 100
+      },
+      {
+        id: "cat",
+        type: "catModel",
+        week: "WEEK P6",
+        title: "고양이",
+        description: "oiiaiooiiiaio",
+        link: "https://editor.p5js.org/53nu/full/WGXRz5cYR",
+        pos: [-400, 300, 45],
+        rot: [Math.PI, 0.34 + Math.PI, 0],
+        scale: 1.0,
+        color: [255, 188, 80],
+        hitRadius: 98
+      },
+      {
+        id: "cube",
+        type: "cubeGenerated",
+        week: "WEEK P7",
+        title: "광각",
+        description: "넓게 보자",
+        link: "https://editor.p5js.org/53nu/full/We0NWEjnC",
+        pos: [0, -80, -530],
+        rot: [0.45, 0.7, 0.12],
+        scale: 1.2,
+        color: [114, 220, 255],
+        hitRadius: 86
+      }
+    ];
+
+    let modelAssets = {};
+    let catTexture;
+    let assetsLoaded = 0;
+    const TOTAL_ASSETS = 4;
+
+    let hoveredObject = null;
+    let tooltip, tipWeek, tipTitle, tipDesc;
+    let entered = false;
+
+    let viewYaw = 0;
+    let viewPitch = 0;
+    let dragYaw = 0;
+    let dragPitch = 0;
+    let currentFov = 84;
+    let targetFov = 84;
+
+    // 전등(천장 조명) 인터랙션 상태
+    let lampMode = 0;          // 현재 조명 프리셋
+    let lampBounce = 0;        // 전등 흔들림 오프셋(스프링)
+    let lampBounceVel = 0;     // 스프링 속도
+    let lampScreenX = -9999, lampScreenY = -9999, lampScreenVisible = false;
+    let lampHover = false;
+    const LAMP_HIT_RADIUS = 90;
+
+    // 창문(ICC) 인터랙션: 각 창문 4칸, 호버하면 몬드리안 색으로 랜덤 변경
+    const WINDOW_KEYS = ["left", "right", "front"];
+    const MONDRIAN_COLORS = [[22, 22, 24], [247, 205, 30], [212, 46, 40], [40, 82, 170]]; // 검정/노랑/빨강/파랑
+    const ICC_LINK = "https://53nu.github.io/ICC-Interactive-Color-Composition/";
+    const PANE_HIT_RADIUS = 40;
+    let paneColors = {};   // key -> [c0..c3] (지속, 기본 흰색)
+    let paneScreens = {};  // key -> [{x,y,visible} x4] (매 프레임 갱신)
+    let panePrevHover = {};// key -> [bool x4] (호버 진입 감지)
+    for (const k of WINDOW_KEYS) {
+      paneColors[k] = [[255, 255, 255], [255, 255, 255], [255, 255, 255], [255, 255, 255]];
+      paneScreens[k] = [{ x: -9999, y: -9999, visible: false }, { x: -9999, y: -9999, visible: false },
+                        { x: -9999, y: -9999, visible: false }, { x: -9999, y: -9999, visible: false }];
+      panePrevHover[k] = [false, false, false, false];
+    }
+    let windowHover = false;
+
+    let pressedX = 0;
+    let pressedY = 0;
+    let draggingView = false;
+
+    let audioCtx;
+    let soundOn = true;
+
+    let clapFrame = 0;
+    const CLAP_DURATION = 44;
+
+    function setup() {
+      setAttributes("antialias", true);
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      pixelDensity(Math.min(window.devicePixelRatio || 1, 2));
+      smooth();
+      noStroke();
+      rectMode(CENTER);
+      ellipseMode(CENTER);
+
+      tooltip = document.getElementById("tooltip");
+      tipWeek = document.getElementById("tipWeek");
+      tipTitle = document.getElementById("tipTitle");
+      tipDesc = document.getElementById("tipDesc");
+
+      const done = () => assetsLoaded++;
+
+      loadModel("assets/teapot.obj", true, m => { modelAssets.teapot = m; done(); }, done);
+      loadModel("assets/mustang.obj", true, m => { modelAssets.guitar = m; done(); }, done);
+      loadModel("assets/oiiaioooooiai_cat.obj", true, m => { modelAssets.cat = m; done(); }, done);
+
+      // PNG 텍스처: XHR로 읽어 Blob URL로 변환 (file:// crossOrigin 차단 우회)
+      (function loadCatTexture() {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', 'assets/Muchkin2.png', true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onload = function() {
+          var blob = new Blob([xhr.response], { type: 'image/png' });
+          var blobUrl = URL.createObjectURL(blob);
+          loadImage(blobUrl, function(img) { catTexture = img; done(); }, done);
+        };
+        xhr.onerror = done;
+        xhr.send();
+      })();
+
+      initSound();
+    }
+
+    function draw() {
+      background(218, 182, 138);
+      randomSeed(3);
+
+      updateCameraRotationOnly();
+      setupRoomLights();
+      drawRoom();
+      drawAllProjectObjects();
+      updateHover();
+      updateTooltip();
+    }
+
+    function updateCameraRotationOnly() {
+      // 마우스를 그냥 움직일 때는 회전하지 않고, 드래그(클릭+이동)할 때만 회전
+      const goalYaw = dragYaw;
+      const goalPitch = constrain(dragPitch, -0.72, 0.62);
+
+      viewYaw = lerp(viewYaw, goalYaw, 0.075);
+      viewPitch = lerp(viewPitch, goalPitch, 0.075);
+      currentFov = lerp(currentFov, targetFov, 0.08);
+
+      perspective(radians(currentFov), width / height, 3, 6000);
+
+      const camX = 0;
+      const camY = -55;
+      const camZ = 460;
+
+      const dirX = sin(viewYaw) * cos(viewPitch);
+      const dirY = sin(viewPitch);
+      const dirZ = -cos(viewYaw) * cos(viewPitch);
+
+      camera(
+        camX, camY, camZ,
+        camX + dirX * 1000,
+        camY + dirY * 1000,
+        camZ + dirZ * 1000,
+        0, 1, 0
+      );
+    }
+
+    // 전등 클릭 = 조명 ON/OFF 토글
+    const LAMP_MODES = [
+      { label: "ON",  ambient: 88, dir: [255, 238, 210], dirv: [-0.25, 0.65, -0.55],
+        pts: [[255, 230, 155, 0, -300, -320], [120, 170, 255, -520, -10, -260], [255, 120, 90, 500, 10, -160]],
+        bulb: [255, 244, 160], shade: [245, 235, 150] },
+      { label: "OFF", ambient: 26, dir: [70, 76, 94], dirv: [-0.25, 0.55, -0.55],
+        pts: [],
+        bulb: [92, 90, 82], shade: [110, 104, 92] }
+    ];
+
+    function setupRoomLights() {
+      const m = LAMP_MODES[lampMode];
+      ambientLight(m.ambient);
+      directionalLight(m.dir[0], m.dir[1], m.dir[2], m.dirv[0], m.dirv[1], m.dirv[2]);
+      for (const p of m.pts) pointLight(p[0], p[1], p[2], p[3], p[4], p[5]);
+    }
+
+    function drawRoom() {
+      drawFloor();
+      drawBackWall();
+      drawLeftWall();
+      drawRightWall();
+      drawFrontWall();
+      drawCeiling();
+    }
+
+    function drawFloor() {
+      push();
+      translate(0, 315, -90);
+      rotateX(HALF_PI);
+      fill(104, 76, 38);
+      stroke(20, 12, 8);
+      strokeWeight(2);
+      plane(1420, 1540);
+
+      translate(0, 0, 2);
+      stroke(44, 30, 18, 180);
+      strokeWeight(2);
+      for (let y = -760; y <= 760; y += 46) line(-710, y, 710, y);
+      for (let x = -700; x <= 700; x += 90) line(x, -760, x + sin(x * 0.03) * 24, 760);
+      stroke(35, 24, 14, 120);
+      for (let i = 0; i < 100; i++) {
+        const x = seeded(i * 21.7, -680, 680);
+        const y = seeded(i * 91.3, -730, 730);
+        line(x - 25, y, x + 25, y + sin(i) * 5);
+      }
+      pop();
+    }
+
+    function drawBackWall() {
+      push();
+      translate(0, -25, -860);
+      fill(232, 198, 144);
+      stroke(20);
+      strokeWeight(2);
+      plane(1420, 690);
+      translate(0, 0, 2);
+      drawWallpaper2D(1420, 690, color(183, 142, 70), color(80, 150, 180));
+      drawWallFrames();
+      pop();
+    }
+
+    function drawLeftWall() {
+      push();
+      translate(-710, -25, -90);
+      rotateY(HALF_PI);
+      fill(238, 211, 166);
+      stroke(20);
+      strokeWeight(2);
+      plane(1540, 690);
+      translate(0, 0, 2);
+      drawWallpaper2D(1540, 690, color(181, 150, 74), color(95, 165, 190));
+      drawWindowOnWall();
+      pop();
+    }
+
+    function drawRightWall() {
+      push();
+      translate(710, -25, -90);
+      rotateY(-HALF_PI);
+      fill(241, 219, 174);
+      stroke(20);
+      strokeWeight(2);
+      plane(1540, 690);
+      translate(0, 0, 2);
+      drawWallpaper2D(1540, 690, color(168, 148, 72), color(230, 120, 85));
+      drawWindowOnRightWall();
+      pop();
+    }
+
+    function drawWindowOnRightWall() {
+      push();
+      translate(80, -65, 2);
+      drawInteractiveWindow("right");
+      pop();
+    }
+
+    // ICC 인터랙티브 창문: 4칸 유리(기본 흰색) + 십자 창살.
+    // 각 칸의 화면좌표를 캡처해 호버/클릭 판정에 사용.
+    function drawInteractiveWindow(key) {
+      // 외곽 프레임
+      fill(45, 80, 95);
+      noStroke();
+      rect(0, 0, 260, 210);
+      // 4칸 유리 (호버로 바뀐 색 반영 + 화면좌표 캡처)
+      translate(0, 0, 1);
+      const cx = [-55, 55, -55, 55];
+      const cy = [-43, -43, 43, 43];
+      for (let i = 0; i < 4; i++) {
+        push();
+        translate(cx[i], cy[i], 0);
+        const c = paneColors[key][i];
+        fill(c[0], c[1], c[2]);
+        noStroke();
+        rect(0, 0, 104, 80);
+        const s = currentTransformToScreen();
+        paneScreens[key][i] = { x: s.x, y: s.y, visible: s.visible };
+        pop();
+      }
+      // 십자 창살
+      translate(0, 0, 1);
+      stroke(20);
+      strokeWeight(2);
+      line(-110, 0, 110, 0);
+      line(0, -86, 0, 86);
+    }
+
+    function drawFrontWall() {
+      push();
+      translate(0, -25, 680);
+      rotateY(PI);
+      fill(235, 208, 162);
+      stroke(20);
+      strokeWeight(2);
+      plane(1420, 690);
+      translate(0, 0, 2);
+      drawWallpaper2D(1420, 690, color(175, 140, 68), color(85, 155, 185));
+      // 창문 (Z-fighting 방지용 오프셋 적용)
+      push();
+      translate(220, -65, 2);
+      drawInteractiveWindow("front");
+      pop();
+      pop();
+    }
+
+    function drawCeiling() {
+      push();
+      translate(0, -370, -90);
+      rotateX(HALF_PI);
+      fill(245, 168, 134);
+      stroke(20);
+      strokeWeight(2);
+      plane(1420, 1540);
+      translate(0, 0, 2);
+      stroke(110, 60, 35, 180);
+      strokeWeight(8);
+      line(-710, -760, 710, -760);
+      line(-710, 760, 710, 760);
+      line(-710, -760, -710, 760);
+      line(710, -760, 710, 760);
+      for (let x = -500; x <= 500; x += 250) line(x, -760, x, 760);
+
+      translate(0, -270, 8);
+      rotateX(-HALF_PI);
+      drawLamp();
+      pop();
+    }
+
+    function drawWallpaper2D(w, h, c1, c2) {
+      noFill();
+      strokeWeight(1.4);
+      for (let x = -w / 2 + 35; x < w / 2; x += 92) {
+        for (let y = -h / 2 + 35; y < h / 2; y += 74) {
+          stroke(c1);
+          circle(x, y, 17);
+          line(x - 20, y, x + 20, y);
+          line(x, y - 20, x, y + 20);
+          stroke(c2);
+          circle(x + 28, y + 18, 12);
+          line(x + 20, y + 18, x + 36, y + 18);
+        }
+      }
+    }
+
+    function drawWindowOnWall() {
+      push();
+      translate(-70, -65, 2);
+      drawInteractiveWindow("left");
+      pop();
+    }
+
+    function drawWallFrames() {
+      push();
+      translate(-340, -105, 4);
+      drawPictureFrame(95, 70, color(75, 88, 60));
+      pop();
+      push();
+      translate(410, -70, 4);
+      drawPictureFrame(80, 115, color(70, 120, 130));
+      pop();
+      push();
+      translate(500, 50, 4);
+      drawPictureFrame(70, 85, color(140, 95, 105));
+      pop();
+    }
+
+    function drawPictureFrame(w, h, inside) {
+      fill(80, 45, 28);
+      noStroke();
+      rect(0, 0, w, h);
+      translate(0, 0, 1);
+      fill(inside);
+      rect(0, 0, w - 18, h - 18);
+    }
+
+    function drawLamp() {
+      // bouncy: 상시 흔들림 + 클릭 반동(스프링). drawCeiling에서 프레임당 1회 호출됨.
+      lampBounceVel += -lampBounce * 0.10;   // 복원력(원위치로)
+      lampBounceVel *= 0.88;                  // 감쇠
+      lampBounce += lampBounceVel;
+      const drop = sin(frameCount * 0.05) * 3 + lampBounce;
+
+      const m = LAMP_MODES[lampMode];
+      push();
+      translate(0, drop, 0);            // 전등 전체가 위아래로 흔들림
+      noStroke();
+      ambientMaterial(45);
+      cylinder(4, 70);                  // 코드
+      translate(0, 50, 0);
+      // 전구 위치를 클릭 판정용 화면 좌표로 캡처
+      const s = currentTransformToScreen();
+      lampScreenX = s.x; lampScreenY = s.y; lampScreenVisible = s.visible;
+      // 전구 (호버 시 살짝 커짐)
+      const glow = lampHover ? 1.14 : 1.0;
+      ambientMaterial(m.bulb[0], m.bulb[1], m.bulb[2]);
+      sphere(18 * glow, 16, 12);
+      // 갓
+      rotateX(HALF_PI);
+      fill(m.shade[0], m.shade[1], m.shade[2], 150);
+      stroke(40);
+      strokeWeight(2);
+      cone(70, 65, 32, 1, false);
+      pop();
+    }
+
+    function drawAllProjectObjects() {
+      for (const obj of PROJECT_OBJECTS) drawProjectObject(obj);
+    }
+
+    function drawProjectObject(obj) {
+      push();
+      translate(obj.pos[0], obj.pos[1], obj.pos[2]);
+      rotateX(obj.rot[0]);
+      rotateY(obj.rot[1]);
+      rotateZ(obj.rot[2]);
+      scale(obj.scale);
+
+      const screen = currentTransformToScreen();
+      obj.screenX = screen.x;
+      obj.screenY = screen.y;
+      obj.screenVisible = screen.visible;
+
+      const isHover = hoveredObject && hoveredObject.id === obj.id;
+      const pulse = isHover ? 1.06 + sin(frameCount * 0.16) * 0.025 : 1.0;
+      scale(pulse);
+
+      push();
+      scale(1.075);
+      noStroke();
+      ambientMaterial(7, 7, 9);
+      drawObjectGeometry(obj, true);
+      pop();
+
+      noStroke();
+      ambientMaterial(obj.color[0], obj.color[1], obj.color[2]);
+      drawObjectGeometry(obj, false);
+
+      pop();
+    }
+
+    function drawObjectGeometry(obj, outlineMode) {
+      if (obj.type === "teapotSet") drawTeapotSet(outlineMode);
+      else if (obj.type === "katanaGenerated") drawGeneratedKatana(outlineMode);
+      else if (obj.type === "guitarModel") drawGuitarModel(outlineMode);
+      else if (obj.type === "rhythmGenerated") drawRhythmObject(outlineMode);
+      else if (obj.type === "catModel") drawCatModel(outlineMode);
+      else if (obj.type === "cubeGenerated") drawFloatingCube(outlineMode);
+    }
+
+    function drawTeapotSet(outlineMode) {
+      if (!modelAssets.teapot) return;
+      push();
+      rotateX(HALF_PI);
+      rotateZ(-0.18 + sin(frameCount * 0.02) * 0.04);
+      scale(0.72);
+      if (!outlineMode) ambientMaterial(235, 226, 210);
+      model(modelAssets.teapot);
+      pop();
+    }
+
+function drawGeneratedKatana(outlineMode) {
+      push();
+      rotateZ(radians(-20));
+      if (!outlineMode) ambientMaterial(30, 30, 34);
+      translate(0, -45, 0);
+      cylinder(6, 65, 18, 1);
+      pop();
+
+      push();
+      rotateZ(radians(-20));
+      if (!outlineMode) ambientMaterial(90, 70, 30);
+      translate(0, -5, 0);
+      cylinder(16, 4, 24, 1);
+      pop();
+
+      push();
+      rotateZ(radians(-20));
+      if (!outlineMode) ambientMaterial(205, 205, 220);
+      translate(0, 55, 0);
+      scale(1.5, 1, 0.2);
+      cylinder(3.5, 160, 20, 1);
+      pop();
+    }
+
+    function drawGuitarModel(outlineMode) {
+      if (!modelAssets.guitar) return;
+      push();
+      // mustang.obj: 긴 축(넥/헤드)=모델 X(+X가 헤드), 얇은 면=모델 Z
+      // → rotateZ(-HALF_PI)면 넥이 위로(헤드 위), 앞면(Z)이 카메라(+Z)를 향함
+      rotateZ(-HALF_PI);
+      scale(2.4, 2.4, 2.4);
+      if (!outlineMode) {
+        const t = 0.5 + 0.5 * sin(frameCount * 0.02);
+        ambientMaterial(lerp(255, 230, t), lerp(255, 45, t), lerp(255, 38, t));
+        specularMaterial(200, 200, 200);
+        shininess(12);
+      }
+      model(modelAssets.guitar);
+      pop();
+    }
+
+    function drawCatModel(outlineMode) {
+      if (!modelAssets.cat) return;
+      push();
+      const spin = frameCount * 0.015;
+      rotateY(spin);
+      if (!outlineMode && catTexture) texture(catTexture);
+      model(modelAssets.cat);
+      pop();
+    }
+
+    function drawFloatingCube(outlineMode) {
+      push();
+      rotateY(frameCount * 0.015);
+      rotateX(frameCount * 0.009);
+      if (outlineMode) {
+        box(96);
+      } else {
+        noFill();
+        stroke(114, 220, 255);
+        strokeWeight(3);
+        box(92);
+        noStroke();
+        ambientMaterial(114, 220, 255);
+        for (let i = 0; i < 8; i++) {
+          push();
+          rotateX(frameCount * 0.012 + i);
+          rotateY(frameCount * 0.01 + i * 1.7);
+          translate(66, 0, 0);
+          box(14);
+          pop();
+        }
+      }
+      pop();
+    }
+
+    function drawRhythmObject(outlineMode) {
+      if (frameCount % 70 === 0) clapFrame = CLAP_DURATION;
+      let clapPulse = 0;
+      if (clapFrame > 0) {
+        const t = 1 - clapFrame / CLAP_DURATION;
+        clapPulse = abs(sin(t * PI));
+        if (!outlineMode) clapFrame--;
+      }
+
+      push();
+      translate(0, 70, -100);
+      if (!outlineMode) drawMiniStage();
+      pop();
+
+      const armAngle = lerp(radians(200), radians(157), clapPulse);
+      const upperBounceY = -abs(sin(millis() * 0.004)) * 7 - clapPulse * 9;
+
+      for (let i = -1; i <= 1; i++) {
+        push();
+        translate(i * 92, 35, 20);
+        scale(0.58);
+        drawMiniMonkey(upperBounceY, armAngle, clapPulse, outlineMode);
+        pop();
+      }
+    }
+
+    function drawMiniStage() {
+      push();
+      ambientMaterial(217, 237, 241);
+      cylinder(190, 28, 64, 1);
+      translate(0, 22, 0);
+      ambientMaterial(212, 212, 212);
+      cylinder(190, 36, 64, 1);
+      pop();
+    }
+
+    function drawMiniMonkey(upperBounceY, armAngle, clapPulse, outlineMode) {
+      const orange = color(215, 123, 40);
+      const darkOrange = color(185, 101, 23);
+      const outline = color(34, 34, 34);
+      const bodyW = 70, bodyH = 120, bodyD = 38;
+      const headSize = 55;
+      const armL = 100, armT = 22;
+      const legL = 100, legT = 26;
+      const shoulderY = -70;
+      const hipY = 35;
+      const shoulderX = bodyW / 2 + armT / 2;
+      const hipX = bodyW / 4;
+
+      drawMonkeyLimb(-hipX, hipY, 0, 0, legL, legT, darkOrange, false, outlineMode);
+      drawMonkeyLimb(hipX, hipY, 0, 0, legL, legT, darkOrange, false, outlineMode);
+
+      push();
+      translate(0, upperBounceY, 0);
+
+      stroke(outline);
+      strokeWeight(outlineMode ? 0 : 3);
+      fill(outlineMode ? color(7, 7, 9) : orange);
+      box(bodyW, bodyH, bodyD);
+
+      push();
+      translate(0, -bodyH / 2 - headSize / 2 + 5, 0);
+      sphere(headSize / 2, 22, 16);
+      if (!outlineMode) {
+        push(); translate(-headSize / 2 + 5, 0, 8); fill(255); sphere(13, 14, 10); pop();
+        push(); translate(headSize / 2 - 5, 0, 8); fill(255); sphere(13, 14, 10); pop();
+      }
+      pop();
+
+      drawMonkeyLimb(-shoulderX, shoulderY, 0, -armAngle, armL, armT, orange, true, outlineMode);
+      drawMonkeyLimb(shoulderX, shoulderY, 0, armAngle, armL, armT, orange, true, outlineMode);
+
+      if (!outlineMode) drawClapStarsMini(clapPulse);
+      pop();
+    }
+
+    function drawMonkeyLimb(x, y, z, a, len, thick, c, hasGlove, outlineMode) {
+      push();
+      translate(x, y, z);
+      rotateZ(a);
+      translate(0, len / 2, 0);
+      stroke(34);
+      strokeWeight(outlineMode ? 0 : 3);
+      fill(outlineMode ? color(7, 7, 9) : c);
+      box(thick, len, thick);
+      if (hasGlove && !outlineMode) {
+        push();
+        translate(0, len / 2 + 12, 0);
+        fill(255);
+        box(34, 24, 18);
+        pop();
+      }
+      pop();
+    }
+
+    function drawClapStarsMini(pulse) {
+      if (pulse <= 0.08) return;
+      push();
+      translate(-95, -165, 45);
+      rotateZ(frameCount * 0.04);
+      scale(0.8 + pulse * 0.7);
+      drawStar2D(0, 0, 12, 26, color(255, 122, 26, 180));
+      pop();
+      push();
+      translate(0, -210, 45);
+      rotateZ(-frameCount * 0.05);
+      scale(0.9 + pulse * 0.8);
+      drawStar2D(0, 0, 13, 29, color(255, 210, 26, 200));
+      pop();
+      push();
+      translate(95, -165, 45);
+      rotateZ(frameCount * 0.045);
+      scale(0.8 + pulse * 0.7);
+      drawStar2D(0, 0, 11, 24, color(255, 122, 26, 180));
+      pop();
+    }
+
+    function drawStar2D(x, y, innerRadius, outerRadius, c) {
+      noStroke();
+      fill(c);
+      beginShape();
+      for (let i = 0; i < 10; i++) {
+        const a = -HALF_PI + i * TWO_PI / 10;
+        const r = i % 2 === 0 ? outerRadius : innerRadius;
+        vertex(x + cos(a) * r, y + sin(a) * r, 0);
+      }
+      endShape(CLOSE);
+    }
+
+    // uModelMatrix * uViewMatrix를 직접 계산해 현재 transform의 정확한 화면 좌표를 구함
+    // (uMVMatrix는 마지막 draw primitive 시점의 캐시라 갱신 전 읽으면 오프셋 발생)
+    function currentTransformToScreen() {
+      const renderer = this._renderer;
+      if (!renderer || !renderer.uModelMatrix || !renderer.uViewMatrix || !renderer.uPMatrix) {
+        return { x: -9999, y: -9999, visible: false };
+      }
+      const mvMat = renderer.uModelMatrix.copy();
+      mvMat.mult(renderer.uViewMatrix);
+      const mv = mvMat.mat4;
+      const pr = renderer.uPMatrix.mat4;
+      const eye = multiplyMat4Vec4(mv, [0, 0, 0, 1]);
+      const clip = multiplyMat4Vec4(pr, eye);
+      if (clip[3] === 0) return { x: -9999, y: -9999, visible: false };
+      const ndcX = clip[0] / clip[3];
+      const ndcY = clip[1] / clip[3];
+      const ndcZ = clip[2] / clip[3];
+      const sx = (ndcX * 0.5 + 0.5) * width;
+      const sy = (-ndcY * 0.5 + 0.5) * height;
+      const visible = ndcZ > -1 && ndcZ < 1 && sx > -240 && sx < width + 240 && sy > -240 && sy < height + 240;
+      return { x: sx, y: sy, visible };
+    }
+
+    function multiplyMat4Vec4(m, v) {
+      const x = v[0], y = v[1], z = v[2], w = v[3];
+      return [
+        m[0] * x + m[4] * y + m[8] * z + m[12] * w,
+        m[1] * x + m[5] * y + m[9] * z + m[13] * w,
+        m[2] * x + m[6] * y + m[10] * z + m[14] * w,
+        m[3] * x + m[7] * y + m[11] * z + m[15] * w
+      ];
+    }
+
+    function updateHover() {
+      let nearest = null;
+      let nearestDist = Infinity;
+      for (const obj of PROJECT_OBJECTS) {
+        if (!obj.screenVisible) continue;
+        const d = dist(mouseX, mouseY, obj.screenX, obj.screenY);
+        if (d < obj.hitRadius && d < nearestDist) {
+          nearest = obj;
+          nearestDist = d;
+        }
+      }
+      hoveredObject = entered ? nearest : null;
+      // 전등 호버 (프로젝트 오브젝트가 우선)
+      lampHover = false;
+      if (entered && !hoveredObject && lampScreenVisible &&
+          dist(mouseX, mouseY, lampScreenX, lampScreenY) < LAMP_HIT_RADIUS) {
+        lampHover = true;
+      }
+      // 창문 칸: 마우스를 올리면 랜덤 몬드리안 색, 벗어나면 다시 흰색
+      windowHover = false;
+      const winBlocked = !entered || hoveredObject || lampHover;
+      for (const k of WINDOW_KEYS) {
+        for (let i = 0; i < 4; i++) {
+          const p = paneScreens[k][i];
+          const on = !winBlocked && p.visible && dist(mouseX, mouseY, p.x, p.y) < PANE_HIT_RADIUS;
+          if (on) {
+            windowHover = true;
+            if (!panePrevHover[k][i]) {
+              // draw()의 randomSeed(3) 영향을 받지 않도록 Math.random 사용 (p5 random은 항상 같은 값→검정만 나옴)
+              paneColors[k][i] = MONDRIAN_COLORS[Math.floor(Math.random() * MONDRIAN_COLORS.length)];
+            }
+          } else {
+            paneColors[k][i] = [255, 255, 255];   // 호버에서 벗어나면 흰색 복귀
+          }
+          panePrevHover[k][i] = on;
+        }
+      }
+      document.body.style.cursor = (hoveredObject || lampHover || windowHover) ? "pointer" : "default";
+    }
+
+    function updateTooltip() {
+      const tipClick = document.getElementById("tipClick");
+      if (entered && lampHover && !hoveredObject) {
+        tipWeek.textContent = "LIGHT";
+        tipTitle.textContent = "전등";
+        tipDesc.textContent = "조명 모드: " + LAMP_MODES[lampMode].label;
+        if (tipClick) tipClick.textContent = "CLICK TO CHANGE LIGHT";
+      } else if (entered && windowHover && !hoveredObject && !lampHover) {
+        tipWeek.textContent = "ICC";
+        tipTitle.textContent = "Interactive Color Composition";
+        tipDesc.textContent = "몬드리안 색 구성 — 칸에 마우스를 올려 색을 칠해보세요";
+        if (tipClick) tipClick.textContent = "CLICK TO OPEN PROJECT";
+      } else if (hoveredObject && entered) {
+        tipWeek.textContent = hoveredObject.week;
+        tipTitle.textContent = hoveredObject.title;
+        tipDesc.textContent = hoveredObject.description;
+        if (tipClick) tipClick.textContent = "CLICK TO OPEN PROJECT";
+      } else {
+        tooltip.style.display = "none";
+        return;
+      }
+
+      const margin = 20;
+      const tw = 320;
+      const th = 130;
+      let x = mouseX + 22;
+      let y = mouseY + 22;
+      if (x + tw > width) x = mouseX - tw - margin;
+      if (y + th > height) y = mouseY - th - margin;
+      tooltip.style.left = x + "px";
+      tooltip.style.top = y + "px";
+      tooltip.style.display = "block";
+    }
+
+    function mousePressed(event) {
+      if (isDomTarget(event)) return;
+      pressedX = mouseX;
+      pressedY = mouseY;
+      draggingView = false;
+    }
+
+    function mouseDragged(event) {
+      if (isDomTarget(event)) return;
+      draggingView = true;
+      dragYaw += movedX * 0.0042;
+      dragPitch += movedY * 0.0038;
+      dragPitch = constrain(dragPitch, -0.72, 0.62);
+    }
+
+    function mouseReleased(event) {
+      if (isDomTarget(event)) return;
+      const moved = dist(mouseX, mouseY, pressedX, pressedY);
+      if (!draggingView && moved < 8 && entered) {
+        if (hoveredObject) {
+          window.open(hoveredObject.link, "_blank");
+          pingSound();
+        } else if (lampHover) {
+          // 전등 클릭: 조명 ON/OFF 토글 + 통통 튀는 반동
+          lampMode = (lampMode + 1) % LAMP_MODES.length;
+          lampBounceVel += 16;
+          pingSound();
+        } else if (windowHover) {
+          // 창문(ICC) 클릭: 프로젝트 페이지 열기
+          window.open(ICC_LINK, "_blank");
+          pingSound();
+        }
+      }
+      draggingView = false;
+    }
+
+    function mouseWheel(event) {
+      targetFov += event.delta * 0.018;
+      targetFov = constrain(targetFov, 68, 112);
+      return false;
+    }
+
+    function isDomTarget(event) {
+      if (!event || !event.target) return false;
+      return !!event.target.closest(".ui-layer, .enter-screen");
+    }
+
+    function keyPressed() {
+      if (key === "r" || key === "R") {
+        dragYaw = 0;
+        dragPitch = 0;
+        targetFov = 84;
+      }
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+
+    function enterSite() {
+      entered = true;
+      document.getElementById("enterScreen").style.display = "none";
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    }
+
+    function initSound() {
+      // 배경음 없음. 클릭 효과음용 오디오 컨텍스트만 준비.
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) {
+        console.warn("Web Audio not available", e);
+      }
+    }
+
+    function toggleSound() {
+      soundOn = !soundOn;   // 클릭 효과음 on/off
+    }
+
+    function pingSound() {
+      // 클릭 효과음: 짧게 위로 올라가는 블립
+      if (!audioCtx || !soundOn) return;
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(620, t);
+      osc.frequency.exponentialRampToValueAtTime(960, t + 0.07);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.16, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.22);
+    }
+
+    function seeded(seed, minValue, maxValue) {
+      const x = Math.sin(seed) * 10000;
+      const r = x - Math.floor(x);
+      return minValue + r * (maxValue - minValue);
+    }
+  </script>
+</body>
+</html>
